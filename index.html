@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <title>Sanakone</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css"
+        integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+    <style type="text/css">
+        .resultTable td {
+            padding-right: 1em;
+        }
+        .resultTable td:empty::after{
+            content: "\00a0";
+        }
+    </style>
+</head>
+
+<body class="container-fluid">
+    <div class="jumbotron p-4 mt-3">
+        <h1>Sanakone</h1>
+        <p>Kokeile miten sanat tavuttuu ja osuu tahdeille. </p>
+        <p>Kone myös näyttää kunkin sanan painon: lyhyet tavut merkitään <span style='color: red'>punaisella</span>, 
+            keskipitkät <span style='color: blue'>sinisellä</span> ja pitkät <span style='color: green'>vihreällä</span>.</p>
+        <p>Voit lisätä tavuviivoja tarpeen mukaan.</p>
+        <h2>Tulevaisuuden ideoita</h2>
+        <p>TODO: Lisää sanan paino boldilla</p>
+        <p>TODO: Lisää tuki diftongeille ja pitkille vokaaleilla: esim kaksoisklikkaamalla tavutus myös keskeltä</p>
+        <p>TODO: Jos sana ei tavutu mukavasti, tavuta se itse (käyttäen -- merkkejä). Kone ei tavuta sanoja joissa on tuplaväliviiva.</p>
+        <p>TODO: Etupotkua varten voit käyttää | merkkiä osoittamaan milloin tahti alkaa.</p>
+        <p>TODO: Kirjoita sävel ja tallenna se. Sen jälkeen voit alkaa kirjoittaa seuraavaa säveltä ja katsoa miten se osuu ensimmäiseen.</p>
+    </div>
+    <div id="placeholder" class="alert alert-info" role="alert">
+        Ladataan sanakirjaa...
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100"
+                aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <div id="theForm" class="container-fluid hidden">
+
+        <div class="row">
+            <div class="col-lg-12">
+                <h2>Sanat</h2>
+                <textarea class="border rounded bg-light p-2" id="inputWords"
+                    title="Sanat tähän." rows="10" cols="50"></textarea>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <button type="button" class="btn btn-primary btn-lg mb-2" onclick="runScript()"
+                    title="Aja skripti" data-placement="auto">
+                    <span class="fa fa-play" aria-hidden="true"></span> Aja!
+                </button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <h2>Tulos</h2>
+                <div class="border rounded" id="outputArea"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <h2>Legal notices</h2>
+        <p>This page uses libvoikko and voikko-fi
+            from <a href="https://github.com/voikko/corevoikko/">corevoikko</a>. 
+            Additionally <a href="https://kripken.github.io/emscripten-site/">Emscripten</a>, <a href="https://jquery.com/">jQuery</a> and <a href="https://getbootstrap.com/">Bootstrap</a> are used.</p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"
+        integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"
+        integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm"
+        crossorigin="anonymous"></script>
+    <script async type="text/javascript" src="js/libvoikko.js"></script>
+    <script>
+
+
+        function syllabWeight(syllab) {
+            var vowels = ['a','e','i','o','u', 'y', 'ä', 'ö'];
+            // Tavun paino:
+            // Lyhyet tavut (return 1)
+            // - Kaikki yksikirjaimiset 
+            // - Kaksikirjaimiset vokaaliin päättyvät
+            // Keskipitkät tavut (return 2)
+            // - Kaksikirjaimiset konsonanttiin päättyvät
+            // - Kolmikirjaimiset konsonanttiin päättyvät
+            // - Kolmikirjaimiset vokaaliin päättyvät
+            // Pitkät tavut (return 3)
+            // - Kolmikirjaimiset pitkään vokaaliin päättyvät
+            // - Kaikki nelikirjaimiset
+            if (syllab.length == 1)
+                return 1;
+            else if (syllab.length == 2)
+            {
+                if (vowels.includes(syllab[1]))
+                    return 1;
+                else
+                    return 2;
+            }
+            else if (syllab.length == 3)
+            {
+                if (vowels.includes(syllab[1]) && (syllab[1] == syllab[2]))
+                    return 3;
+                else
+                    return 2;
+            }
+            else
+                return 3;
+        }
+
+        function showSyllab(syllab, lastSyllab) {
+            var color;
+            if (syllab)
+            {
+                if (syllabWeight(syllab) == 1)
+                    color = 'red';
+                else if (syllabWeight(syllab) == 2)
+                    color = 'blue';
+                else
+                    color = 'green';
+                
+                if (lastSyllab)
+                    return "<td><span style='color: "+color+"'>"+syllab+"</span></td>";
+                else   
+                    return "<td><span style='color: "+color+"'>"+syllab+"-</span></td>";
+            }
+            else
+                return "<td></td>";
+        }
+
+        function runScript() {
+            var output = $("#outputArea");
+            output.empty();
+            var new_html = "<table class=\"resultTable\">";
+            var input_words = $("#inputWords").val();
+            var lines = input_words.split("\n");
+
+            for (var i = 0; i < lines.length; i++) {
+                var row_html = "<tr>"; 
+                var words = lines[i].split(" ");
+                for (var j = 0; j < words.length; j++) {
+                    var word = words[j];
+                    //Method of getting compound words for word weigths
+                    //console.log(v.analyze(word)[0].STRUCTURE);
+                    //var hyphenation_letter = "-</td><td>";
+                    var hyphenated_word = v.hyphenate(word, "-");
+                    var syllabs = hyphenated_word.split("-");
+                    for (var k = 0; k < syllabs.length-1; k++) {
+                        var syllab = syllabs[k];
+                        row_html += showSyllab(syllab, false);
+                    }
+                    row_html += showSyllab(syllabs[syllabs.length-1], true);
+                }
+                row_html += "</tr>";
+                new_html += row_html;
+            }
+            new_html += "</table>";
+            output.append(new_html);
+        }
+
+        window.addEventListener('load', function () {
+            var libvoikko = Libvoikko({
+                onLoad: function () {
+                    $("#placeholder").remove();
+                    $("#theForm").removeClass("hidden");
+                    v = libvoikko.init("fi");
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
