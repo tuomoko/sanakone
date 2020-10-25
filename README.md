@@ -8,7 +8,8 @@ https://github.com/voikko/corevoikko/wiki/JavaScript
 
 ## Requirements
 Download the dictionary data:
-    wget https://www.puimula.org/htp/testing/voikko-snapshot-v5/dict.zip
-    unzip dict.zip
-    rm dict.zip
-
+```
+wget https://www.puimula.org/htp/testing/voikko-snapshot-v5/dict.zip
+unzip dict.zip
+rm dict.zip
+```
